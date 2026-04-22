@@ -1,0 +1,19 @@
+{
+  "name": "mild-days-vanilla-oop",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "ogl": "^1.0.0"
+  },
+  "devDependencies": {
+    "sass": "^1.72.0",
+    "vite": "^5.2.0"
+  }
+}

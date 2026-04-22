@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mild Days - Archive</title>
+  <link rel="stylesheet" href="/styles/base.scss" />
+  <style>
+    .archive-layout {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+    }
+    .archive-layout__title {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      text-transform: uppercase;
+      color: #010101;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="app" data-template="archive">
+    <nav class="navigation">
+      <a href="/" class="navigation__link">Back to Index</a>
+    </nav>
+
+    <div class="archive-layout">
+      <h1 class="archive-layout__title" data-animation="clunky-reveal">Archive</h1>
+    </div>
+  </main>
+  <canvas class="webgl-canvas"></canvas>
+  <script type="module" src="/app/index.js"></script>
+</body>
+</html>

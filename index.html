@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>John Milner - Interactive Developer</title>
+  <link rel="stylesheet" href="/styles/base.scss" />
+</head>
+<body>
+  <div class="brand">
+    <span class="brand__name">John Milner</span><br>
+    <span class="brand__title">Interactive Developer</span>
+  </div>
+
+  <nav class="navigation">
+    <a href="/" class="navigation__link active">Index</a>
+    <a href="/archive" class="navigation__link">Archive</a>
+  </nav>
+
+  <div class="availability" data-animation="copy-clipboard">
+    <div class="availability__wrapper">
+      <div class="availability__status">
+        <span class="availability__line">Available for Work</span>
+        <span class="availability__line">May 2026</span>
+      </div>
+      <div class="availability__email">
+        <span class="availability__line">johnmilner335@gmail.com</span>
+        <span class="availability__line copy-alert">Click to Copy</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="minimap">
+    <div class="minimap__track">
+      <div class="minimap__progress"></div>
+    </div>
+  </div>
+
+  <main class="app" data-template="home">
+    <div class="scroll-content">
+      <div class="slider">
+        <div class="slider__wrapper">
+          
+          <figure class="slider__item">
+            <img class="slider__image" src="/images/project-7.jpg" alt="Mild Days" />
+            <div class="slider__content">
+              <div class="slider__indicator">
+                <svg class="slider__indicator-svg" viewBox="0 0 50 50">
+                  <circle class="indicator-bg" cx="25" cy="25" r="23"></circle>
+                  <circle class="indicator-progress" cx="25" cy="25" r="23"></circle>
+                </svg>
+                <span class="slider__indicator-arrow">↓</span>
+              </div>
+              <figcaption class="slider__title" data-animation="clunky-reveal">Mild Days</figcaption>
+            </div>
+          </figure>
+
+          <figure class="slider__item">
+            <img class="slider__image" src="/images/image-2.png" alt="Project 2" />
+            <div class="slider__content">
+              <div class="slider__indicator">
+                <svg class="slider__indicator-svg" viewBox="0 0 50 50">
+                  <circle class="indicator-bg" cx="25" cy="25" r="23"></circle>
+                  <circle class="indicator-progress" cx="25" cy="25" r="23"></circle>
+                </svg>
+                <span class="slider__indicator-arrow">↓</span>
+              </div>
+              <figcaption class="slider__title" data-animation="clunky-reveal">Project Two</figcaption>
+            </div>
+          </figure>
+
+          <figure class="slider__item">
+            <img class="slider__image" src="/images/image-3.png" alt="Project 3" />
+            <div class="slider__content">
+              <div class="slider__indicator">
+                <svg class="slider__indicator-svg" viewBox="0 0 50 50">
+                  <circle class="indicator-bg" cx="25" cy="25" r="23"></circle>
+                  <circle class="indicator-progress" cx="25" cy="25" r="23"></circle>
+                </svg>
+                <span class="slider__indicator-arrow">↓</span>
+              </div>
+              <figcaption class="slider__title" data-animation="clunky-reveal">Project Three</figcaption>
+            </div>
+          </figure>
+
+          <figure class="slider__item">
+            <img class="slider__image" src="/images/image-4.png" alt="Project 4" />
+            <div class="slider__content">
+              <div class="slider__indicator">
+                <svg class="slider__indicator-svg" viewBox="0 0 50 50">
+                  <circle class="indicator-bg" cx="25" cy="25" r="23"></circle>
+                  <circle class="indicator-progress" cx="25" cy="25" r="23"></circle>
+                </svg>
+                <span class="slider__indicator-arrow">↓</span>
+              </div>
+              <figcaption class="slider__title" data-animation="clunky-reveal">Project Four</figcaption>
+            </div>
+          </figure>
+
+          <figure class="slider__item">
+            <img class="slider__image" src="/images/image-5.png" alt="Project 5" />
+            <div class="slider__content">
+              <div class="slider__indicator">
+                <svg class="slider__indicator-svg" viewBox="0 0 50 50">
+                  <circle class="indicator-bg" cx="25" cy="25" r="23"></circle>
+                  <circle class="indicator-progress" cx="25" cy="25" r="23"></circle>
+                </svg>
+                <span class="slider__indicator-arrow">↓</span>
+              </div>
+              <figcaption class="slider__title" data-animation="clunky-reveal">Project Five</figcaption>
+            </div>
+          </figure>
+
+          <figure class="slider__item">
+            <img class="slider__image" src="/images/image-6.png" alt="Project 6" />
+            <div class="slider__content">
+              <div class="slider__indicator">
+                <svg class="slider__indicator-svg" viewBox="0 0 50 50">
+                  <circle class="indicator-bg" cx="25" cy="25" r="23"></circle>
+                  <circle class="indicator-progress" cx="25" cy="25" r="23"></circle>
+                </svg>
+                <span class="slider__indicator-arrow">↓</span>
+              </div>
+              <figcaption class="slider__title" data-animation="clunky-reveal">Project Six</figcaption>
+            </div>
+          </figure>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <canvas class="webgl-canvas"></canvas>
+  <script type="module" src="/app/index.js"></script>
+</body>
+</html>
