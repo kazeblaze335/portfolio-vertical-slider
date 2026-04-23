@@ -9,7 +9,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
   line-height: 1.2;
-  
   -ms-overflow-style: none; 
   scrollbar-width: none; 
 }
@@ -116,7 +115,7 @@ html, body {
 .scroll-content {
   width: 100%;
   will-change: transform;
-  padding: 25vh 0; 
+  padding: 50vh 0; 
 }
 
 [data-animation="clunky-reveal"] { opacity: 0; }
@@ -128,19 +127,17 @@ html, body {
 
   &__item {
     position: relative;
-    width: 60vw; /* Widened slightly to give the landscape ratio room to breathe */
+    width: 60vw;
     max-width: 900px;
+    /* Explicit 1.5 ratio = 6:4 Landscape */
+    aspect-ratio: 1.5; 
     margin: 8vh 0;
   }
 
   &__image {
     opacity: 0; 
     width: 100%;
-    height: auto; 
-    
-    /* THE FIX: Horizontal 6:4 aspect ratio */
-    aspect-ratio: 6 / 4; 
-    
+    height: 100%; 
     object-fit: cover; 
     display: block;
   }
@@ -162,8 +159,7 @@ html, body {
   &__title {
     font-size: clamp(3rem, 7vw, 9rem);
     font-weight: 700;
-    color: $color-bg;
-    mix-blend-mode: difference;
+    color: $color-text; 
     margin: 0;
     text-transform: uppercase;
   }
@@ -176,8 +172,7 @@ html, body {
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    mix-blend-mode: difference;
-    color: $color-bg;
+    color: $color-text; 
     
     &-svg {
       position: absolute;
@@ -191,9 +186,9 @@ html, body {
         fill: none;
         stroke-width: 2;
       }
-      .indicator-bg { stroke: rgba(255, 255, 255, 0.2); }
+      .indicator-bg { stroke: rgba(1, 1, 1, 0.2); } 
       .indicator-progress {
-        stroke: $color-bg;
+        stroke: $color-text; 
         stroke-dasharray: 145;
         stroke-dashoffset: 145;
         transition: stroke-dashoffset 0.1s linear;

@@ -18,14 +18,12 @@ export default class Home extends Page {
   create() {
     super.create();
     
-    // The ResizeObserver guarantees that even if images load slowly, 
-    // the virtual scroll height will update perfectly, preventing the "stuck" bug.
     if (this.elements.scrollContent) {
-      this.resizeObserver = new ResizeObserver((entries) => {
-        for (let entry of entries) {
-          document.body.style.height = `${entry.contentRect.height}px`;
-          this.maxScroll = document.body.scrollHeight - window.innerHeight;
-        }
+      this.resizeObserver = new ResizeObserver(() => {
+        // THE FIX: getBoundingClientRect() calculates the true height including our 50vh padding!
+        const height = this.elements.scrollContent.getBoundingClientRect().height;
+        document.body.style.height = `${height}px`;
+        this.maxScroll = document.body.scrollHeight - window.innerHeight;
       });
       this.resizeObserver.observe(this.elements.scrollContent);
     }

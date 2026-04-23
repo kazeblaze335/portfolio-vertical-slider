@@ -6,8 +6,7 @@ export default class Canvas {
     this.createCamera();
     this.createScene();
     
-    // Geometry can be shared across all meshes safely
-    this.geometry = new Plane(this.gl, { heightSegments: 30, widthSegments: 30 });
+    this.geometry = new Plane(this.gl, { heightSegments: 50, widthSegments: 50 });
     
     this.medias = [];
     this.onResize();
@@ -40,7 +39,6 @@ export default class Canvas {
       image.src = element.getAttribute('src');
       image.onload = () => texture.image = image;
 
-      // CRITICAL FIX: Every mesh gets its own unique Program to prevent uniform overriding
       const program = new Program(this.gl, {
         vertex: `
           attribute vec3 position;
@@ -48,18 +46,25 @@ export default class Canvas {
           uniform mat4 modelViewMatrix;
           uniform mat4 projectionMatrix;
           uniform float uOffset;
+          
           varying vec2 vUv;
+          varying float vShadow; 
           
           void main() {
             vUv = uv;
             vec3 pos = position;
             
-            // Carousel Math (Convex / Slot Machine)
             float screenY = uOffset + (pos.y * 0.5);
-            float distance = abs(screenY);
+            float distanceY = abs(screenY);
+            float distanceX = abs(pos.x);
             
-            // Subtracting Z pushes the mesh AWAY from the camera at the top/bottom bounds
-            pos.z -= (distance * distance) * 3.0; 
+            // Concave hollow cylinder curve
+            float zBend = (distanceY * distanceY) * 6.0 + (distanceX * distanceX) * 3.5;
+            pos.z += zBend; 
+            
+            // Shadows naturally deepen on the curved edges
+            vShadow = 1.0 - smoothstep(0.0, 5.0, zBend);
+            vShadow = clamp(vShadow, 0.4, 1.0);
 
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
           }
@@ -67,17 +72,19 @@ export default class Canvas {
         fragment: `
           precision highp float;
           uniform sampler2D tMap;
+          
           varying vec2 vUv;
+          varying float vShadow; 
           
           void main() {
             vec4 tex = texture2D(tMap, vUv);
-            float gray = dot(tex.rgb, vec3(0.299, 0.587, 0.114));
-            gl_FragColor = vec4(vec3(gray), tex.a);
+            vec3 shadedColor = tex.rgb * vShadow;
+            gl_FragColor = vec4(shadedColor, tex.a);
           }
         `,
         uniforms: {
           uOffset: { value: 0 },
-          tMap: { value: texture } // Bound specifically to this mesh's texture
+          tMap: { value: texture } 
         }
       });
 
@@ -85,7 +92,7 @@ export default class Canvas {
       
       mesh.rotation.x = -Math.PI / 6; 
       mesh.rotation.y = Math.PI / 24;
-      mesh.rotation.z = Math.PI / 18; // Positive Math.PI = Counter-Clockwise
+      mesh.rotation.z = Math.PI / 18; 
 
       mesh.position.z = index * 0.01;
       mesh.setParent(this.scene);
@@ -109,19 +116,18 @@ export default class Canvas {
     this.medias.forEach(media => {
       const bounds = media.element.getBoundingClientRect();
       
+      // THE FIX: Removed the * 1.3 multiplier to enforce the true DOM bounding box!
       media.mesh.scale.x = this.viewport.width * bounds.width / this.screen.width;
-      media.mesh.scale.y = (this.viewport.height * bounds.height / this.screen.height) * 1.3; 
+      media.mesh.scale.y = this.viewport.height * bounds.height / this.screen.height; 
       
       const centerDistanceY = (bounds.top + bounds.height / 2) - (window.innerHeight / 2);
       
       media.mesh.position.y = (this.viewport.height / 2) - (this.viewport.height * (bounds.top + bounds.height / 2) / this.screen.height);
       
       const baseX = (this.viewport.width * (bounds.left + bounds.width / 2) / this.screen.width) - (this.viewport.width / 2);
-      
       const diagonalDrift = centerDistanceY * 0.002; 
       media.mesh.position.x = baseX + diagonalDrift;
       
-      // Pass normalized distance (-0.5 to 0.5) to the vertex shader
       const offsetValue = centerDistanceY / window.innerHeight;
       media.mesh.program.uniforms.uOffset.value = offsetValue;
     });

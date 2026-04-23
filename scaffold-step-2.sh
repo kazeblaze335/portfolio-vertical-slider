@@ -1,7 +1,8 @@
 #!/bin/bash
 
-echo "Flipping aspect ratio to 6:4 horizontal landscape..."
+echo "Removing WebGL scale distortion and locking in 6:4 horizontal aspect ratio..."
 
+# 1. Bulletproof the CSS landscape container
 cat << 'EOF' > styles/base.scss
 @use './variables' as *;
 
@@ -14,7 +15,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
   line-height: 1.2;
-  
   -ms-overflow-style: none; 
   scrollbar-width: none; 
 }
@@ -121,7 +121,7 @@ html, body {
 .scroll-content {
   width: 100%;
   will-change: transform;
-  padding: 25vh 0; 
+  padding: 50vh 0; 
 }
 
 [data-animation="clunky-reveal"] { opacity: 0; }
@@ -133,19 +133,17 @@ html, body {
 
   &__item {
     position: relative;
-    width: 60vw; /* Widened slightly to give the landscape ratio room to breathe */
+    width: 60vw;
     max-width: 900px;
+    /* Explicit 1.5 ratio = 6:4 Landscape */
+    aspect-ratio: 1.5; 
     margin: 8vh 0;
   }
 
   &__image {
     opacity: 0; 
     width: 100%;
-    height: auto; 
-    
-    /* THE FIX: Horizontal 6:4 aspect ratio */
-    aspect-ratio: 6 / 4; 
-    
+    height: 100%; 
     object-fit: cover; 
     display: block;
   }
@@ -167,8 +165,7 @@ html, body {
   &__title {
     font-size: clamp(3rem, 7vw, 9rem);
     font-weight: 700;
-    color: $color-bg;
-    mix-blend-mode: difference;
+    color: $color-text; 
     margin: 0;
     text-transform: uppercase;
   }
@@ -181,8 +178,7 @@ html, body {
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    mix-blend-mode: difference;
-    color: $color-bg;
+    color: $color-text; 
     
     &-svg {
       position: absolute;
@@ -196,9 +192,9 @@ html, body {
         fill: none;
         stroke-width: 2;
       }
-      .indicator-bg { stroke: rgba(255, 255, 255, 0.2); }
+      .indicator-bg { stroke: rgba(1, 1, 1, 0.2); } 
       .indicator-progress {
-        stroke: $color-bg;
+        stroke: $color-text; 
         stroke-dasharray: 145;
         stroke-dashoffset: 145;
         transition: stroke-dashoffset 0.1s linear;
@@ -218,4 +214,145 @@ html, body {
 }
 EOF
 
-echo "Landscape aspect ratio perfectly locked in!"
+# 2. Update Canvas.js to remove the 1.3 multiplier distortion
+cat << 'EOF' > app/classes/Canvas.js
+import { Renderer, Camera, Transform, Plane, Program, Mesh, Texture } from 'ogl';
+
+export default class Canvas {
+  constructor() {
+    this.createRenderer();
+    this.createCamera();
+    this.createScene();
+    
+    this.geometry = new Plane(this.gl, { heightSegments: 50, widthSegments: 50 });
+    
+    this.medias = [];
+    this.onResize();
+    window.addEventListener('resize', this.onResize.bind(this));
+  }
+
+  createRenderer() {
+    this.renderer = new Renderer({ alpha: true, dpr: Math.min(window.devicePixelRatio, 2) });
+    this.gl = this.renderer.gl;
+    const canvas = document.querySelector('.webgl-canvas');
+    if(canvas) canvas.replaceWith(this.gl.canvas);
+    this.gl.canvas.classList.add('webgl-canvas');
+  }
+
+  createCamera() {
+    this.camera = new Camera(this.gl);
+    this.camera.position.z = 15; 
+  }
+
+  createScene() {
+    this.scene = new Transform();
+  }
+
+  createMedias(domElements) {
+    this.medias.forEach(media => media.mesh.setParent(null));
+    this.medias = Array.from(domElements).map((element, index) => {
+      
+      const texture = new Texture(this.gl);
+      const image = new Image();
+      image.src = element.getAttribute('src');
+      image.onload = () => texture.image = image;
+
+      const program = new Program(this.gl, {
+        vertex: `
+          attribute vec3 position;
+          attribute vec2 uv;
+          uniform mat4 modelViewMatrix;
+          uniform mat4 projectionMatrix;
+          uniform float uOffset;
+          
+          varying vec2 vUv;
+          varying float vShadow; 
+          
+          void main() {
+            vUv = uv;
+            vec3 pos = position;
+            
+            float screenY = uOffset + (pos.y * 0.5);
+            float distanceY = abs(screenY);
+            float distanceX = abs(pos.x);
+            
+            // Concave hollow cylinder curve
+            float zBend = (distanceY * distanceY) * 6.0 + (distanceX * distanceX) * 3.5;
+            pos.z += zBend; 
+            
+            // Shadows naturally deepen on the curved edges
+            vShadow = 1.0 - smoothstep(0.0, 5.0, zBend);
+            vShadow = clamp(vShadow, 0.4, 1.0);
+
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+          }
+        `,
+        fragment: `
+          precision highp float;
+          uniform sampler2D tMap;
+          
+          varying vec2 vUv;
+          varying float vShadow; 
+          
+          void main() {
+            vec4 tex = texture2D(tMap, vUv);
+            vec3 shadedColor = tex.rgb * vShadow;
+            gl_FragColor = vec4(shadedColor, tex.a);
+          }
+        `,
+        uniforms: {
+          uOffset: { value: 0 },
+          tMap: { value: texture } 
+        }
+      });
+
+      const mesh = new Mesh(this.gl, { geometry: this.geometry, program });
+      
+      mesh.rotation.x = -Math.PI / 6; 
+      mesh.rotation.y = Math.PI / 24;
+      mesh.rotation.z = Math.PI / 18; 
+
+      mesh.position.z = index * 0.01;
+      mesh.setParent(this.scene);
+      
+      return { element, mesh };
+    });
+  }
+
+  onResize() {
+    this.screen = { width: window.innerWidth, height: window.innerHeight };
+    this.renderer.setSize(this.screen.width, this.screen.height);
+    this.camera.perspective({ aspect: this.gl.canvas.width / this.gl.canvas.height });
+    
+    const fov = this.camera.fov * (Math.PI / 180);
+    const height = 2 * Math.tan(fov / 2) * this.camera.position.z;
+    const width = height * this.camera.aspect;
+    this.viewport = { height, width };
+  }
+
+  update() {
+    this.medias.forEach(media => {
+      const bounds = media.element.getBoundingClientRect();
+      
+      // THE FIX: Removed the * 1.3 multiplier to enforce the true DOM bounding box!
+      media.mesh.scale.x = this.viewport.width * bounds.width / this.screen.width;
+      media.mesh.scale.y = this.viewport.height * bounds.height / this.screen.height; 
+      
+      const centerDistanceY = (bounds.top + bounds.height / 2) - (window.innerHeight / 2);
+      
+      media.mesh.position.y = (this.viewport.height / 2) - (this.viewport.height * (bounds.top + bounds.height / 2) / this.screen.height);
+      
+      const baseX = (this.viewport.width * (bounds.left + bounds.width / 2) / this.screen.width) - (this.viewport.width / 2);
+      const diagonalDrift = centerDistanceY * 0.002; 
+      media.mesh.position.x = baseX + diagonalDrift;
+      
+      const offsetValue = centerDistanceY / window.innerHeight;
+      media.mesh.program.uniforms.uOffset.value = offsetValue;
+    });
+
+    this.renderer.render({ scene: this.scene, camera: this.camera });
+  }
+}
+EOF
+
+echo "WebGL scale distortion cleared! The 6:4 aspect ratio is beautifully synced."
