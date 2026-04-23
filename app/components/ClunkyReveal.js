@@ -42,10 +42,17 @@ export default class ClunkyReveal extends Component {
   }
 
   show() {
+    gsap.killTweensOf(this.chars); // Stop any ongoing hide animations
     gsap.set(this.element, { opacity: 1 });
     gsap.fromTo(this.chars, 
       { y: '100%', rotate: 10 }, 
       { y: '0%', rotate: 0, stagger: 0.04, duration: 1.4, ease: 'expo.out' }
     );
+  }
+
+  hide() {
+    gsap.killTweensOf(this.chars); // Stop any ongoing show animations
+    gsap.set(this.element, { opacity: 0 });
+    gsap.set(this.chars, { y: '100%', rotate: 10 }); // Reset positions instantly
   }
 }

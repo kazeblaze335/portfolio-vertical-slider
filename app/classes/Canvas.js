@@ -58,11 +58,11 @@ export default class Canvas {
             float distanceY = abs(screenY);
             float distanceX = abs(pos.x);
             
-            // Concave hollow cylinder curve
-            float zBend = (distanceY * distanceY) * 6.0 + (distanceX * distanceX) * 3.5;
+            // SOFTENED BEND: Reduced multipliers from 6.0/3.5 down to 2.0/1.0 
+            // This eliminates the dramatic 'flipping' distortion while keeping the concave feel
+            float zBend = (distanceY * distanceY) * 2.0 + (distanceX * distanceX) * 1.0;
             pos.z += zBend; 
             
-            // Shadows naturally deepen on the curved edges
             vShadow = 1.0 - smoothstep(0.0, 5.0, zBend);
             vShadow = clamp(vShadow, 0.4, 1.0);
 
@@ -90,8 +90,8 @@ export default class Canvas {
 
       const mesh = new Mesh(this.gl, { geometry: this.geometry, program });
       
-      mesh.rotation.x = -Math.PI / 6; 
-      mesh.rotation.y = Math.PI / 24;
+      mesh.rotation.x = 0; 
+      mesh.rotation.y = 0;
       mesh.rotation.z = Math.PI / 18; 
 
       mesh.position.z = index * 0.01;
@@ -116,7 +116,6 @@ export default class Canvas {
     this.medias.forEach(media => {
       const bounds = media.element.getBoundingClientRect();
       
-      // THE FIX: Removed the * 1.3 multiplier to enforce the true DOM bounding box!
       media.mesh.scale.x = this.viewport.width * bounds.width / this.screen.width;
       media.mesh.scale.y = this.viewport.height * bounds.height / this.screen.height; 
       
@@ -125,8 +124,8 @@ export default class Canvas {
       media.mesh.position.y = (this.viewport.height / 2) - (this.viewport.height * (bounds.top + bounds.height / 2) / this.screen.height);
       
       const baseX = (this.viewport.width * (bounds.left + bounds.width / 2) / this.screen.width) - (this.viewport.width / 2);
-      const diagonalDrift = centerDistanceY * 0.002; 
-      media.mesh.position.x = baseX + diagonalDrift;
+      
+      media.mesh.position.x = baseX; 
       
       const offsetValue = centerDistanceY / window.innerHeight;
       media.mesh.program.uniforms.uOffset.value = offsetValue;

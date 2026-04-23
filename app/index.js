@@ -66,14 +66,20 @@ class App {
       this.page.update(this.scroll);
     }
 
-    // Mathematical trigger for text reveals synced perfectly with virtual scroll
+    // BI-DIRECTIONAL REVEAL TRIGGER
     if (this.reveals) {
       this.reveals.forEach(reveal => {
         const bounds = reveal.element.getBoundingClientRect();
-        // Check if the title has entered the middle 60% of the viewport
+        
+        // If it enters the safe zone, show it
         if (!reveal.isVisible && bounds.top < window.innerHeight * 0.8 && bounds.bottom > window.innerHeight * 0.2) {
           reveal.show();
           reveal.isVisible = true;
+        } 
+        // If it leaves the screen (top or bottom), reset it
+        else if (reveal.isVisible && (bounds.top > window.innerHeight || bounds.bottom < 0)) {
+          reveal.hide();
+          reveal.isVisible = false;
         }
       });
     }

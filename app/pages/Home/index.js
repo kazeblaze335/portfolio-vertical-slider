@@ -7,6 +7,7 @@ export default class Home extends Page {
       element: '.app[data-template="home"]',
       elements: { 
         scrollContent: '.scroll-content',
+        items: '.slider__item', // Grab the wrapper elements for our diagonal math
         images: '.slider__image',
         minimapProgress: '.minimap__progress',
         indicators: '.indicator-progress'
@@ -20,7 +21,6 @@ export default class Home extends Page {
     
     if (this.elements.scrollContent) {
       this.resizeObserver = new ResizeObserver(() => {
-        // THE FIX: getBoundingClientRect() calculates the true height including our 50vh padding!
         const height = this.elements.scrollContent.getBoundingClientRect().height;
         document.body.style.height = `${height}px`;
         this.maxScroll = document.body.scrollHeight - window.innerHeight;
@@ -36,29 +36,37 @@ export default class Home extends Page {
       this.elements.minimapProgress.style.transform = `translateY(${progress * trackHeight}px)`;
     }
 
-    const images = Array.isArray(this.elements.images) || this.elements.images instanceof NodeList 
-        ? Array.from(this.elements.images) 
-        : [this.elements.images];
+    const items = Array.isArray(this.elements.items) || this.elements.items instanceof NodeList 
+        ? Array.from(this.elements.items) 
+        : [this.elements.items];
 
     const indicators = Array.isArray(this.elements.indicators) || this.elements.indicators instanceof NodeList 
         ? Array.from(this.elements.indicators) 
         : [this.elements.indicators];
 
-    images.forEach((img, index) => {
-      if (!img) return;
-      const bounds = img.getBoundingClientRect();
+    // Calculate the physical diagonal shift for every item individually
+    items.forEach((item, index) => {
+      if (!item) return;
+      const bounds = item.getBoundingClientRect();
+      const centerDistanceY = (bounds.top + bounds.height / 2) - (window.innerHeight / 2);
+      
+      // OFF-AXIS MATH: 
+      // Translate the X position based on the Y position to lock them into a 10-degree slanted track
+      const angle = 10 * (Math.PI / 180);
+      const xOffset = centerDistanceY * Math.tan(angle);
+      
+      // Physically shift the DOM container. WebGL naturally inherits this in the next rendering loop!
+      item.style.transform = `translateX(${xOffset}px)`;
+      
+      // Indicator drawing math based on distance from center
       const indicator = indicators[index];
-      if (!indicator) return;
-
-      const centerOfScreen = window.innerHeight / 2;
-      const centerOfImage = bounds.top + bounds.height / 2;
-      const distanceFromCenter = Math.abs(centerOfScreen - centerOfImage);
-
-      let fillProgress = 1 - (distanceFromCenter / 300);
-      fillProgress = Math.max(0, Math.min(fillProgress, 1)); 
-
-      const offset = 145 - (145 * fillProgress);
-      indicator.style.strokeDashoffset = offset;
+      if (indicator) {
+        const distanceFromCenter = Math.abs(centerDistanceY);
+        let fillProgress = 1 - (distanceFromCenter / 300);
+        fillProgress = Math.max(0, Math.min(fillProgress, 1)); 
+        const offset = 145 - (145 * fillProgress);
+        indicator.style.strokeDashoffset = offset;
+      }
     });
   }
 }

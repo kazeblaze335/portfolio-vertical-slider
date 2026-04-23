@@ -127,11 +127,11 @@ html, body {
 
   &__item {
     position: relative;
-    width: 60vw;
-    max-width: 900px;
-    /* Explicit 1.5 ratio = 6:4 Landscape */
+    width: 50vw;
+    max-width: 750px;
     aspect-ratio: 1.5; 
     margin: 8vh 0;
+    will-change: transform; /* Optimized for our dynamic horizontal sliding */
   }
 
   &__image {
@@ -146,7 +146,8 @@ html, body {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(-10deg);
+    /* FIX: Keep text perfectly horizontal, removed the 10-degree rotation */
+    transform: translate(-50%, -50%);
     display: flex;
     align-items: center;
     gap: 2rem;
