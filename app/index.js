@@ -3,6 +3,9 @@ import ClunkyReveal from 'components/ClunkyReveal';
 import CopyClipboard from 'components/CopyClipboard';
 import Home from 'pages/Home';
 import Archive from 'pages/Archive';
+import Project from 'pages/Project'; 
+import gsap from 'gsap';
+import Lenis from '@studio-freight/lenis'; // Import Lenis!
 
 class App {
   constructor() {
@@ -10,11 +13,36 @@ class App {
     this.createPages();
     
     this.canvas = new Canvas();
+    
+    // Switch from custom lerp to Lenis state tracking
     this.scroll = { current: 0, target: 0 };
     
+    this.initLenis();
     this.createComponents();
     this.createWebGL();
-    this.update();
+    
+    this.initPageTransitions(); 
+    
+    // Pass timestamp into the loop for Lenis
+    window.requestAnimationFrame((time) => this.update(time));
+  }
+
+  initLenis() {
+    this.lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), 
+      direction: 'vertical',
+      gestureDirection: 'vertical',
+      smooth: true,
+      mouseMultiplier: 1,
+      smoothTouch: false,
+    });
+
+    // Update our internal scroll state based on Lenis events
+    this.lenis.on('scroll', (e) => {
+      this.scroll.current = e.scroll;
+      this.scroll.target = e.targetScroll;
+    });
   }
 
   createContent() {
@@ -25,7 +53,8 @@ class App {
   createPages() {
     this.pages = {
       home: new Home(),
-      archive: new Archive()
+      archive: new Archive(),
+      project: new Project() 
     };
     this.page = this.pages[this.template];
     this.page.create();
@@ -54,10 +83,59 @@ class App {
     }
   }
 
-  update() {
-    this.scroll.target = window.scrollY || 0;
-    this.scroll.current += (this.scroll.target - this.scroll.current) * 0.08;
+  initPageTransitions() {
+    gsap.to('.page-transition', {
+      x: '100%',
+      duration: 1.2,
+      ease: 'expo.inOut',
+      onComplete: () => {
+        gsap.set('.page-transition', { x: '-100%' });
+      }
+    });
 
+    this.bindTransitionLinks();
+
+    window.addEventListener('seamless-navigate', () => {
+      this.createContent(); 
+      this.createPages();
+      this.createComponents(); 
+      this.bindTransitionLinks(); 
+      
+      // Reset Lenis to top for the new page content
+      this.lenis.scrollTo(0, { immediate: true });
+    });
+  }
+
+  bindTransitionLinks() {
+    const transitionLinks = document.querySelectorAll('.transition-link');
+    transitionLinks.forEach(link => {
+      const newLink = link.cloneNode(true);
+      link.parentNode.replaceChild(newLink, link);
+      
+      newLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetUrl = newLink.getAttribute('href');
+        
+        // Stop scrolling during transition
+        this.lenis.stop(); 
+        
+        gsap.to('.page-transition', {
+          x: '0%', 
+          duration: 1.2,
+          ease: 'expo.inOut',
+          onComplete: () => {
+            window.location.href = targetUrl; 
+          }
+        });
+      });
+    });
+  }
+
+  update(time) {
+    // 1. Let Lenis handle the math!
+    this.lenis.raf(time);
+
+    // 2. Drive the DOM container based on Lenis's perfectly smoothed scroll value
     if (this.page && this.page.elements.scrollContent) {
       this.page.elements.scrollContent.style.transform = `translateY(-${this.scroll.current}px)`;
     }
@@ -66,18 +144,13 @@ class App {
       this.page.update(this.scroll);
     }
 
-    // BI-DIRECTIONAL REVEAL TRIGGER
     if (this.reveals) {
       this.reveals.forEach(reveal => {
         const bounds = reveal.element.getBoundingClientRect();
-        
-        // If it enters the safe zone, show it
         if (!reveal.isVisible && bounds.top < window.innerHeight * 0.8 && bounds.bottom > window.innerHeight * 0.2) {
           reveal.show();
           reveal.isVisible = true;
-        } 
-        // If it leaves the screen (top or bottom), reset it
-        else if (reveal.isVisible && (bounds.top > window.innerHeight || bounds.bottom < 0)) {
+        } else if (reveal.isVisible && (bounds.top > window.innerHeight || bounds.bottom < 0)) {
           reveal.hide();
           reveal.isVisible = false;
         }
@@ -85,7 +158,7 @@ class App {
     }
 
     this.canvas.update();
-    window.requestAnimationFrame(this.update.bind(this));
+    window.requestAnimationFrame((t) => this.update(t));
   }
 }
 

@@ -1,8 +1,3 @@
-#!/bin/bash
-
-echo "Wiring the Project page into Lenis and the scroll loop..."
-
-cat << 'EOF' > app/pages/Project/index.js
 import Page from 'classes/Page';
 
 export default class Project extends Page {
@@ -44,6 +39,3 @@ export default class Project extends Page {
     super.destroy();
   }
 }
-EOF
-
-echo "Project page wired! The pull-up transition is fully online."

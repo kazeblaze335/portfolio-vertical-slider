@@ -1,4 +1,5 @@
 import { Renderer, Camera, Transform, Plane, Program, Mesh, Texture } from 'ogl';
+import gsap from 'gsap'; 
 
 export default class Canvas {
   constructor() {
@@ -6,11 +7,15 @@ export default class Canvas {
     this.createCamera();
     this.createScene();
     
-    this.geometry = new Plane(this.gl, { heightSegments: 50, widthSegments: 50 });
-    
+    this.geometry = new Plane(this.gl, { heightSegments: 30, widthSegments: 30 });
     this.medias = [];
+    
     this.onResize();
     window.addEventListener('resize', this.onResize.bind(this));
+
+    window.addEventListener('project-transition', (e) => {
+      this.animateToProject(e.detail.index);
+    });
   }
 
   createRenderer() {
@@ -37,8 +42,7 @@ export default class Canvas {
       const texture = new Texture(this.gl);
       const image = new Image();
       image.src = element.getAttribute('src');
-      image.onload = () => texture.image = image;
-
+      
       const program = new Program(this.gl, {
         vertex: `
           attribute vec3 position;
@@ -56,15 +60,11 @@ export default class Canvas {
             
             float screenY = uOffset + (pos.y * 0.5);
             float distanceY = abs(screenY);
-            float distanceX = abs(pos.x);
             
-            // SOFTENED BEND: Reduced multipliers from 6.0/3.5 down to 2.0/1.0 
-            // This eliminates the dramatic 'flipping' distortion while keeping the concave feel
-            float zBend = (distanceY * distanceY) * 2.0 + (distanceX * distanceX) * 1.0;
-            pos.z += zBend; 
-            
-            vShadow = 1.0 - smoothstep(0.0, 5.0, zBend);
-            vShadow = clamp(vShadow, 0.4, 1.0);
+            pos.x += pos.x * (distanceY * distanceY) * 0.4; 
+
+            vShadow = 1.0 - smoothstep(0.0, 1.2, distanceY);
+            vShadow = clamp(vShadow, 0.15, 0.80);
 
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
           }
@@ -73,31 +73,93 @@ export default class Canvas {
           precision highp float;
           uniform sampler2D tMap;
           
+          // THE FIX: New uniforms for object-fit cover math
+          uniform vec2 uMeshSize;
+          uniform vec2 uImageSize;
+          
           varying vec2 vUv;
           varying float vShadow; 
           
           void main() {
-            vec4 tex = texture2D(tMap, vUv);
+            // WebGL equivalent of background-size: cover
+            vec2 ratio = vec2(
+              min((uMeshSize.x / uMeshSize.y) / (uImageSize.x / uImageSize.y), 1.0),
+              min((uMeshSize.y / uMeshSize.x) / (uImageSize.y / uImageSize.x), 1.0)
+            );
+            
+            // Re-center the UVs so the crop happens perfectly from the middle
+            vec2 uv = vec2(
+              vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+              vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
+            );
+            
+            vec4 tex = texture2D(tMap, uv);
             vec3 shadedColor = tex.rgb * vShadow;
             gl_FragColor = vec4(shadedColor, tex.a);
           }
         `,
         uniforms: {
           uOffset: { value: 0 },
-          tMap: { value: texture } 
+          tMap: { value: texture },
+          // Initialize our new dimension uniforms
+          uMeshSize: { value: [0, 0] },
+          uImageSize: { value: [0, 0] } 
         }
       });
+
+      // Pass the natural image dimensions to the shader once it loads
+      image.onload = () => {
+        texture.image = image;
+        program.uniforms.uImageSize.value = [image.naturalWidth, image.naturalHeight];
+      };
 
       const mesh = new Mesh(this.gl, { geometry: this.geometry, program });
       
       mesh.rotation.x = 0; 
       mesh.rotation.y = 0;
       mesh.rotation.z = Math.PI / 18; 
-
       mesh.position.z = index * 0.01;
+      
       mesh.setParent(this.scene);
       
-      return { element, mesh };
+      return { element, mesh, isTransitioning: false };
+    });
+  }
+
+  animateToProject(index) {
+    const targetMedia = this.medias[index];
+    if (!targetMedia) return;
+
+    targetMedia.isTransitioning = true;
+    targetMedia.mesh.position.z = 1.0; 
+
+    const fullWidth = this.viewport.width;
+    const fullHeight = this.viewport.height;
+
+    gsap.to(targetMedia.mesh.position, {
+      x: 0, 
+      y: 0, 
+      duration: 1.2,
+      ease: 'expo.inOut'
+    });
+
+    gsap.to(targetMedia.mesh.rotation, {
+      z: 0, 
+      duration: 1.2,
+      ease: 'expo.inOut'
+    });
+
+    gsap.to(targetMedia.mesh.scale, {
+      x: fullWidth, 
+      y: fullHeight, 
+      duration: 1.2,
+      ease: 'expo.inOut'
+    });
+
+    gsap.to(targetMedia.mesh.program.uniforms.uOffset, {
+      value: 0,
+      duration: 1.2,
+      ease: 'expo.inOut'
     });
   }
 
@@ -114,6 +176,12 @@ export default class Canvas {
 
   update() {
     this.medias.forEach(media => {
+      // THE FIX: This must update BEFORE the 'isTransitioning' return!
+      // This ensures GSAP's scaling animation is fed into the shader's cover math every single frame.
+      media.mesh.program.uniforms.uMeshSize.value = [media.mesh.scale.x, media.mesh.scale.y];
+
+      if (media.isTransitioning) return; 
+
       const bounds = media.element.getBoundingClientRect();
       
       media.mesh.scale.x = this.viewport.width * bounds.width / this.screen.width;
@@ -124,11 +192,12 @@ export default class Canvas {
       media.mesh.position.y = (this.viewport.height / 2) - (this.viewport.height * (bounds.top + bounds.height / 2) / this.screen.height);
       
       const baseX = (this.viewport.width * (bounds.left + bounds.width / 2) / this.screen.width) - (this.viewport.width / 2);
-      
       media.mesh.position.x = baseX; 
       
       const offsetValue = centerDistanceY / window.innerHeight;
       media.mesh.program.uniforms.uOffset.value = offsetValue;
+      
+      media.mesh.rotation.x = 0; 
     });
 
     this.renderer.render({ scene: this.scene, camera: this.camera });
