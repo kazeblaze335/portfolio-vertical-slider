@@ -25,9 +25,6 @@ export default class Home extends Page {
       this.resizeObserver = new ResizeObserver(() => {
         const height = this.elements.scrollContent.getBoundingClientRect().height;
         document.body.style.height = `${height}px`;
-        
-        // THE FIX: Calculate maxScroll directly from the observed height 
-        // to guarantee the mini-map slider math is 100% accurate.
         this.maxScroll = height - window.innerHeight;
       });
       this.resizeObserver.observe(this.elements.scrollContent);
@@ -53,8 +50,10 @@ export default class Home extends Page {
 
   transitionToProject(index) {
     this.isTransitioning = true;
-    document.body.style.overflow = 'hidden';
 
+    // THE FIX: Dispatch a global command to instantly kill Lenis momentum
+    window.dispatchEvent(new CustomEvent('freeze-scroll'));
+    
     window.dispatchEvent(new CustomEvent('project-transition', { detail: { index } }));
 
     gsap.to('.scroll-content, .brand, .navigation, .minimap, .availability', {
@@ -70,25 +69,21 @@ export default class Home extends Page {
         const doc = parser.parseFromString(html, 'text/html');
         
         const newApp = doc.querySelector('.app[data-template="project"]');
-        const newNav = doc.querySelector('.navigation');
+        const oldApp = document.querySelector('.app[data-template="home"]');
 
         setTimeout(() => {
-          const oldApp = document.querySelector('.app[data-template="home"]');
           if (oldApp) oldApp.remove();
-
           document.body.appendChild(newApp);
 
           const oldNav = document.querySelector('.navigation');
+          const newNav = doc.querySelector('.navigation');
           if (oldNav && newNav) {
             oldNav.innerHTML = newNav.innerHTML;
             gsap.to(oldNav, { opacity: 1, duration: 0.5 }); 
           }
 
-          window.history.pushState({}, '', '/project.html');
-          
-          document.body.style.overflow = '';
+          window.history.pushState({}, '', `/project.html?id=${index}`);
           window.scrollTo(0, 0);
-
           window.dispatchEvent(new CustomEvent('seamless-navigate'));
 
         }, 1200); 
@@ -117,17 +112,13 @@ export default class Home extends Page {
       const bounds = item.getBoundingClientRect();
       const centerDistanceY = (bounds.top + bounds.height / 2) - (window.innerHeight / 2);
       const angle = 10 * (Math.PI / 180);
-      const xOffset = centerDistanceY * Math.tan(angle);
-      
-      item.style.transform = `translateX(${xOffset}px)`;
+      item.style.transform = `translateX(${centerDistanceY * Math.tan(angle)}px)`;
       
       const indicator = indicators[index];
       if (indicator) {
         const distanceFromCenter = Math.abs(centerDistanceY);
-        let fillProgress = 1 - (distanceFromCenter / 300);
-        fillProgress = Math.max(0, Math.min(fillProgress, 1)); 
-        const offset = 145 - (145 * fillProgress);
-        indicator.style.strokeDashoffset = offset;
+        let fillProgress = Math.max(0, Math.min(1 - (distanceFromCenter / 300), 1)); 
+        indicator.style.strokeDashoffset = 145 - (145 * fillProgress);
       }
     });
   }

@@ -1,56 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mild Days | Project</title>
-  <script type="module" src="/styles/base.scss"></script>
-</head>
-<body>
-  <div class="page-transition"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project | Portfolio</title>
+    <script type="module" src="/styles/base.scss"></script>
+  </head>
+  <body>
+    <div class="page-transition"></div>
 
-  <nav class="navigation">
-    <a href="/" class="navigation__link transition-link">← Back to Home</a>
-  </nav>
+    <nav class="navigation">
+      <a href="/" class="navigation__link transition-link">← Back to Archive</a>
+    </nav>
 
-  <div class="app" data-template="project">
-    <div class="scroll-content">
-      <div class="project-content">
-        <h1 class="project-title" data-animation="clunky-reveal">Mild Days</h1>
-        <div class="project-details">
-          <p>Strategy / Design / WebGL</p>
-          <p>London, UK</p>
-        </div>
-        
-        <div class="project-hero">
+    <div class="app" data-template="project">
+      <div class="scroll-content">
+        <div class="project-content">
+          <h1 class="project-title" data-animation="clunky-reveal">
+            Loading...
+          </h1>
+          <div class="project-details">
+            <p>Strategy / Design / WebGL</p>
+            <p>Loading Location...</p>
           </div>
 
-        <article class="project-article">
-          <div class="project-article__text">
-            <h2>The Challenge</h2>
-            <p>Creating a digital experience that mirrors the physical weight and atmospheric tension of the brand's core identity. We explored concave spatial distortion, brutalist typography, and high-contrast color palettes to break traditional grid structures.</p>
-          </div>
-          
-          <div class="project-article__gallery">
-            <div class="project-article__image placeholder-dark"></div>
-            <div class="project-article__image placeholder-light"></div>
-          </div>
-        </article>
+          <div class="project-hero"></div>
 
-        <a href="/" class="next-project transition-link">
-          <div class="next-project__wrapper">
-            <div class="next-project__label">
-              <span class="label-default">Next Project</span>
-              <span class="label-hover">Explore Project</span>
+          <article class="project-article">
+            <div class="project-article__text">
+              <h2>The Challenge</h2>
+              <p>
+                Creating a digital experience that mirrors the physical weight
+                and atmospheric tension of the brand's core identity. We
+                explored concave spatial distortion, brutalist typography, and
+                high-contrast color palettes to break traditional grid
+                structures.
+              </p>
             </div>
-            <h2 class="next-project__title">Secret Level</h2>
-          </div>
-        </a>
 
+            <div class="project-article__gallery">
+              <div class="project-article__image placeholder-dark"></div>
+              <div class="project-article__image placeholder-light"></div>
+            </div>
+          </article>
+
+          <a href="#" class="next-project">
+            <div class="next-project__wrapper">
+              <div class="next-project__label">
+                <span class="label-default">Next Project</span>
+                <span class="label-hover">Explore Project</span>
+              </div>
+              <h2 class="next-project__title">Loading...</h2>
+            </div>
+          </a>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script type="module" src="/app/index.js"></script>
-</body>
+    <script type="module" src="/app/index.js"></script>
+  </body>
 </html>

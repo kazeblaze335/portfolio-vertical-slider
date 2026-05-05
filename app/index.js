@@ -5,7 +5,7 @@ import Home from 'pages/Home';
 import Archive from 'pages/Archive';
 import Project from 'pages/Project'; 
 import gsap from 'gsap';
-import Lenis from '@studio-freight/lenis'; // Import Lenis!
+import Lenis from '@studio-freight/lenis';
 
 class App {
   constructor() {
@@ -13,8 +13,6 @@ class App {
     this.createPages();
     
     this.canvas = new Canvas();
-    
-    // Switch from custom lerp to Lenis state tracking
     this.scroll = { current: 0, target: 0 };
     
     this.initLenis();
@@ -23,7 +21,6 @@ class App {
     
     this.initPageTransitions(); 
     
-    // Pass timestamp into the loop for Lenis
     window.requestAnimationFrame((time) => this.update(time));
   }
 
@@ -38,10 +35,14 @@ class App {
       smoothTouch: false,
     });
 
-    // Update our internal scroll state based on Lenis events
     this.lenis.on('scroll', (e) => {
       this.scroll.current = e.scroll;
       this.scroll.target = e.targetScroll;
+    });
+
+    // THE FIX: Kill scroll momentum immediately when requested
+    window.addEventListener('freeze-scroll', () => {
+      this.lenis.stop();
     });
   }
 
@@ -101,7 +102,8 @@ class App {
       this.createComponents(); 
       this.bindTransitionLinks(); 
       
-      // Reset Lenis to top for the new page content
+      // THE FIX: We must restart Lenis after the navigation completes!
+      this.lenis.start();
       this.lenis.scrollTo(0, { immediate: true });
     });
   }
@@ -116,7 +118,6 @@ class App {
         e.preventDefault();
         const targetUrl = newLink.getAttribute('href');
         
-        // Stop scrolling during transition
         this.lenis.stop(); 
         
         gsap.to('.page-transition', {
@@ -132,10 +133,8 @@ class App {
   }
 
   update(time) {
-    // 1. Let Lenis handle the math!
     this.lenis.raf(time);
 
-    // 2. Drive the DOM container based on Lenis's perfectly smoothed scroll value
     if (this.page && this.page.elements.scrollContent) {
       this.page.elements.scrollContent.style.transform = `translateY(-${this.scroll.current}px)`;
     }

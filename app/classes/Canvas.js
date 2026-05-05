@@ -16,6 +16,10 @@ export default class Canvas {
     window.addEventListener('project-transition', (e) => {
       this.animateToProject(e.detail.index);
     });
+
+    window.addEventListener('swap-project', (e) => {
+      this.swapProject(e.detail.index);
+    });
   }
 
   createRenderer() {
@@ -72,8 +76,6 @@ export default class Canvas {
         fragment: `
           precision highp float;
           uniform sampler2D tMap;
-          
-          // THE FIX: New uniforms for object-fit cover math
           uniform vec2 uMeshSize;
           uniform vec2 uImageSize;
           
@@ -81,13 +83,11 @@ export default class Canvas {
           varying float vShadow; 
           
           void main() {
-            // WebGL equivalent of background-size: cover
             vec2 ratio = vec2(
               min((uMeshSize.x / uMeshSize.y) / (uImageSize.x / uImageSize.y), 1.0),
               min((uMeshSize.y / uMeshSize.x) / (uImageSize.y / uImageSize.x), 1.0)
             );
             
-            // Re-center the UVs so the crop happens perfectly from the middle
             vec2 uv = vec2(
               vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
               vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
@@ -101,13 +101,11 @@ export default class Canvas {
         uniforms: {
           uOffset: { value: 0 },
           tMap: { value: texture },
-          // Initialize our new dimension uniforms
           uMeshSize: { value: [0, 0] },
           uImageSize: { value: [0, 0] } 
         }
       });
 
-      // Pass the natural image dimensions to the shader once it loads
       image.onload = () => {
         texture.image = image;
         program.uniforms.uImageSize.value = [image.naturalWidth, image.naturalHeight];
@@ -131,36 +129,44 @@ export default class Canvas {
     if (!targetMedia) return;
 
     targetMedia.isTransitioning = true;
-    targetMedia.mesh.position.z = 1.0; 
+    
+    // THE FIX: Microscopic offset prevents Z-fighting without triggering a perspective pop!
+    targetMedia.mesh.position.z = 0.05; 
 
     const fullWidth = this.viewport.width;
     const fullHeight = this.viewport.height;
 
-    gsap.to(targetMedia.mesh.position, {
-      x: 0, 
-      y: 0, 
-      duration: 1.2,
-      ease: 'expo.inOut'
+    gsap.to(targetMedia.mesh.position, { x: 0, y: 0, duration: 1.2, ease: 'expo.inOut' });
+    gsap.to(targetMedia.mesh.rotation, { z: 0, duration: 1.2, ease: 'expo.inOut' });
+    gsap.to(targetMedia.mesh.scale, { x: fullWidth, y: fullHeight, duration: 1.2, ease: 'expo.inOut' });
+    gsap.to(targetMedia.mesh.program.uniforms.uOffset, { value: 0, duration: 1.2, ease: 'expo.inOut' });
+  }
+
+  swapProject(index) {
+    this.medias.forEach((media, i) => {
+      media.isTransitioning = false;
+      media.mesh.position.z = i * 0.01; 
+      gsap.killTweensOf(media.mesh.position);
+      gsap.killTweensOf(media.mesh.rotation);
+      gsap.killTweensOf(media.mesh.scale);
+      gsap.killTweensOf(media.mesh.program.uniforms.uOffset);
     });
 
-    gsap.to(targetMedia.mesh.rotation, {
-      z: 0, 
-      duration: 1.2,
-      ease: 'expo.inOut'
-    });
+    const targetMedia = this.medias[index];
+    if (!targetMedia) return;
 
-    gsap.to(targetMedia.mesh.scale, {
-      x: fullWidth, 
-      y: fullHeight, 
-      duration: 1.2,
-      ease: 'expo.inOut'
-    });
+    targetMedia.isTransitioning = true;
+    
+    // THE FIX: Match the microscopic offset here too
+    targetMedia.mesh.position.z = 0.05; 
 
-    gsap.to(targetMedia.mesh.program.uniforms.uOffset, {
-      value: 0,
-      duration: 1.2,
-      ease: 'expo.inOut'
-    });
+    targetMedia.mesh.position.x = 0;
+    targetMedia.mesh.position.y = 0;
+    targetMedia.mesh.rotation.z = 0;
+    targetMedia.mesh.scale.x = this.viewport.width;
+    targetMedia.mesh.scale.y = this.viewport.height;
+    targetMedia.mesh.program.uniforms.uOffset.value = 0;
+    targetMedia.mesh.program.uniforms.uMeshSize.value = [this.viewport.width, this.viewport.height];
   }
 
   onResize() {
@@ -176,27 +182,19 @@ export default class Canvas {
 
   update() {
     this.medias.forEach(media => {
-      // THE FIX: This must update BEFORE the 'isTransitioning' return!
-      // This ensures GSAP's scaling animation is fed into the shader's cover math every single frame.
       media.mesh.program.uniforms.uMeshSize.value = [media.mesh.scale.x, media.mesh.scale.y];
 
       if (media.isTransitioning) return; 
 
       const bounds = media.element.getBoundingClientRect();
-      
       media.mesh.scale.x = this.viewport.width * bounds.width / this.screen.width;
       media.mesh.scale.y = this.viewport.height * bounds.height / this.screen.height; 
       
       const centerDistanceY = (bounds.top + bounds.height / 2) - (window.innerHeight / 2);
-      
       media.mesh.position.y = (this.viewport.height / 2) - (this.viewport.height * (bounds.top + bounds.height / 2) / this.screen.height);
-      
       const baseX = (this.viewport.width * (bounds.left + bounds.width / 2) / this.screen.width) - (this.viewport.width / 2);
       media.mesh.position.x = baseX; 
-      
-      const offsetValue = centerDistanceY / window.innerHeight;
-      media.mesh.program.uniforms.uOffset.value = offsetValue;
-      
+      media.mesh.program.uniforms.uOffset.value = centerDistanceY / window.innerHeight;
       media.mesh.rotation.x = 0; 
     });
 
