@@ -61,15 +61,11 @@ export default class Canvas {
           void main() {
             vUv = uv;
             vec3 pos = position;
-            
             float screenY = uOffset + (pos.y * 0.5);
             float distanceY = abs(screenY);
-            
             pos.x += pos.x * (distanceY * distanceY) * 0.4; 
-
             vShadow = 1.0 - smoothstep(0.0, 1.2, distanceY);
             vShadow = clamp(vShadow, 0.15, 0.80);
-
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
           }
         `,
@@ -87,15 +83,12 @@ export default class Canvas {
               min((uMeshSize.x / uMeshSize.y) / (uImageSize.x / uImageSize.y), 1.0),
               min((uMeshSize.y / uMeshSize.x) / (uImageSize.y / uImageSize.x), 1.0)
             );
-            
             vec2 uv = vec2(
               vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
               vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
             );
-            
             vec4 tex = texture2D(tMap, uv);
-            vec3 shadedColor = tex.rgb * vShadow;
-            gl_FragColor = vec4(shadedColor, tex.a);
+            gl_FragColor = vec4(tex.rgb * vShadow, tex.a);
           }
         `,
         uniforms: {
@@ -112,12 +105,10 @@ export default class Canvas {
       };
 
       const mesh = new Mesh(this.gl, { geometry: this.geometry, program });
-      
       mesh.rotation.x = 0; 
       mesh.rotation.y = 0;
       mesh.rotation.z = Math.PI / 18; 
       mesh.position.z = index * 0.01;
-      
       mesh.setParent(this.scene);
       
       return { element, mesh, isTransitioning: false };
@@ -129,16 +120,11 @@ export default class Canvas {
     if (!targetMedia) return;
 
     targetMedia.isTransitioning = true;
-    
-    // THE FIX: Microscopic offset prevents Z-fighting without triggering a perspective pop!
     targetMedia.mesh.position.z = 0.05; 
-
-    const fullWidth = this.viewport.width;
-    const fullHeight = this.viewport.height;
 
     gsap.to(targetMedia.mesh.position, { x: 0, y: 0, duration: 1.2, ease: 'expo.inOut' });
     gsap.to(targetMedia.mesh.rotation, { z: 0, duration: 1.2, ease: 'expo.inOut' });
-    gsap.to(targetMedia.mesh.scale, { x: fullWidth, y: fullHeight, duration: 1.2, ease: 'expo.inOut' });
+    gsap.to(targetMedia.mesh.scale, { x: this.viewport.width, y: this.viewport.height, duration: 1.2, ease: 'expo.inOut' });
     gsap.to(targetMedia.mesh.program.uniforms.uOffset, { value: 0, duration: 1.2, ease: 'expo.inOut' });
   }
 
@@ -156,10 +142,7 @@ export default class Canvas {
     if (!targetMedia) return;
 
     targetMedia.isTransitioning = true;
-    
-    // THE FIX: Match the microscopic offset here too
     targetMedia.mesh.position.z = 0.05; 
-
     targetMedia.mesh.position.x = 0;
     targetMedia.mesh.position.y = 0;
     targetMedia.mesh.rotation.z = 0;

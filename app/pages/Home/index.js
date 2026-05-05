@@ -9,7 +9,7 @@ export default class Home extends Page {
       elements: { 
         scrollContent: '.scroll-content',
         items: '.slider__item', 
-        images: '.slider__image',
+        images: '.slider__image', /* RESTORED IMAGE SELECTOR */
         minimapProgress: '.minimap__progress',
         indicators: '.indicator-progress'
       }
@@ -50,10 +50,7 @@ export default class Home extends Page {
 
   transitionToProject(index) {
     this.isTransitioning = true;
-
-    // THE FIX: Dispatch a global command to instantly kill Lenis momentum
     window.dispatchEvent(new CustomEvent('freeze-scroll'));
-    
     window.dispatchEvent(new CustomEvent('project-transition', { detail: { index } }));
 
     gsap.to('.scroll-content, .brand, .navigation, .minimap, .availability', {
@@ -85,6 +82,7 @@ export default class Home extends Page {
           window.history.pushState({}, '', `/project.html?id=${index}`);
           window.scrollTo(0, 0);
           window.dispatchEvent(new CustomEvent('seamless-navigate'));
+          window.dispatchEvent(new CustomEvent('play-hero-text'));
 
         }, 1200); 
       });

@@ -40,7 +40,11 @@ class App {
       this.scroll.target = e.targetScroll;
     });
 
-    // THE FIX: Kill scroll momentum immediately when requested
+    // Let Lenis handle the butter-smooth scroll down 1 screen height
+    window.addEventListener('scroll-to-content', () => {
+      this.lenis.scrollTo(window.innerHeight, { duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+    });
+
     window.addEventListener('freeze-scroll', () => {
       this.lenis.stop();
     });
@@ -91,6 +95,8 @@ class App {
       ease: 'expo.inOut',
       onComplete: () => {
         gsap.set('.page-transition', { x: '-100%' });
+        // Trigger text reveal immediately if navigating directly to a project page via URL
+        window.dispatchEvent(new CustomEvent('play-hero-text'));
       }
     });
 
@@ -102,7 +108,6 @@ class App {
       this.createComponents(); 
       this.bindTransitionLinks(); 
       
-      // THE FIX: We must restart Lenis after the navigation completes!
       this.lenis.start();
       this.lenis.scrollTo(0, { immediate: true });
     });
